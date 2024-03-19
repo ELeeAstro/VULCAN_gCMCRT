@@ -1,3 +1,7 @@
+# VULCAN gCMCRT
+
+Testing code for adding MCRT to VULCAN
+
 # VULCAN
 #### Authors: Shang-Min (Shami) Tsai ####
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)\
@@ -183,5 +187,3 @@ for research on exoplanets. The three parts of the ESP are
 [4]: https://github.com/exoclime/VULCAN
 [5]: https://github.com/exoclime/FastChem
 [6]: https://github.com/exoclime/HELA
-# VULCAN_gMCRT
-# VULCAN_gMCRT
