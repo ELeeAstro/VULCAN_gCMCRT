@@ -38,7 +38,7 @@ from phy_const import kb, Navo, hc, ag0 # hc is used to convert to the actinic f
 from vulcan_cfg import nz
 
 # gCMCRT radiative-transfer module
-import time
+import timeit
 from gCMCRT import gCMCRT_main
 
 # imported functions 
@@ -596,6 +596,8 @@ class ReadRate(object):
         var.dflux_u, var.dflux_d = np.zeros( (nz+1, var.nbin) ), np.zeros( (nz+1, var.nbin) )
         # the total actinic flux (non-staggered)
         var.aflux = np.zeros( (nz, var.nbin) )
+        # total flux (centered)
+        var.tflux = np.zeros((nz, var.nbin))
         # the total actinic flux from the previous calculation 
         prev_aflux = np.zeros( (nz, var.nbin) )
         
@@ -847,14 +849,17 @@ class Integration(object):
                   # Also set sets to lists
                   ph_sp = list(var.photo_sp)
 
-                  start = time.time()
+                  start = timeit.default_timer()
                   print('Start gCMCRT')
 
                   #gCMCRT_main(Nph, nlay, nwl, n_cross, cross, VMR_cross, n_ray, ray, VMR_ray, g, nd, Iinc, surf_alb, mu_z, z)
-                  Jdot = gCMCRT_main(vulcan_cfg.Nph, nz, len(var.bins), species, ph_sp, vulcan_cfg.scat_sp, var.y, abs_cross, sca_cross, var.sflux_top, mu_ang, atm.dz)
+                  Jdot, Hdot = gCMCRT_main(para.count, vulcan_cfg.Nph, nz, len(var.bins), species, ph_sp, vulcan_cfg.scat_sp, var.y, abs_cross, sca_cross, var.sflux_top, mu_ang, atm.dz)
                            
-                  end = time.time()
+                  end = timeit.default_timer()
                   print('End gCMCRT, took: ', '{:.3f}'.format(end-start), 'seconds')
+
+                  # Add to flux estimator
+                  var.tflux[:,:] = abs(Hdot[:,:])
 
                   # store the previous actinic flux into prev_aflux
                   var.prev_aflux = np.copy(var.aflux)
@@ -863,11 +868,11 @@ class Integration(object):
                   # the change of the actinic flux
                   var.aflux_change = np.nanmax( np.abs(var.aflux-var.prev_aflux)[var.aflux>vulcan_cfg.flux_atol]/var.aflux[var.aflux>vulcan_cfg.flux_atol] )
                 else:
-                  start = time.time()
+                  start = timeit.default_timer()
                   print('Start normal')
                   self.odesolver.compute_tau(var, atm)
                   self.odesolver.compute_flux(var, atm)
-                  end = time.time()
+                  end = timeit.default_timer()
                   print('End normal, took: ', '{:.3f}'.format(end-start), 'seconds')
 
                 self.odesolver.compute_J(var, atm)
@@ -2957,17 +2962,21 @@ class Output(object):
         
         # fig.add_subplot(121) fig.add_subplot(122)
         
+        #if (vulcan_cfg.use_gCMCRT == True):
+        line4, = plt.plot(np.sum(var.tflux,axis=1), atm.pco/1.e6, label='total flux' )
+        #images.append(line1)
+        #else:
         line1, = plt.plot(np.sum(var.dflux_u,axis=1), atm.pico/1.e6, label='up flux')
         line2, = plt.plot(np.sum(var.dflux_d,axis=1), atm.pico/1.e6, label='down flux', ls='--', lw=1.2)
         line3, = plt.plot(np.sum(var.sflux,axis=1), atm.pico/1.e6, label='stellar flux', ls=':', lw=1.5)
-            
-        images.append((line1,line2))        
-        
+        images.append((line1,line2)) 
+
+        plt.xlim(xmin=1.E-8)
         plt.title(str(para.count)+' steps and ' + str("{:.2e}".format(var.t)) + ' s' )
         plt.gca().set_xscale('log')       
         plt.gca().set_yscale('log') 
         plt.gca().invert_yaxis() 
-        plt.xlim(xmin=1.E-8)
+        
         plt.ylim((atm.pico[0]/1.e6,atm.pico[-1]/1.e6))
         plt.legend(frameon=0, prop={'size':14}, loc=3)
         plt.xlabel("Diffusive flux")

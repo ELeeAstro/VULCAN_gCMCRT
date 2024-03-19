@@ -9,7 +9,7 @@ from numba import jit, config, int32, float64, prange
 from numba.core import types
 from numba.experimental import jitclass
 from numba.typed import Dict
-
+import secrets
 
 ## Flag to disable JIT
 config.DISABLE_JIT = False
@@ -43,7 +43,7 @@ class pac:
 
 ## Function that integrates a packet through the 1D plane-parallel grid
 @jit(nopython=True, cache=True)
-def tauint_1D_pp(ph, nlay, z, sig_ext, l, Jdot):
+def tauint_1D_pp(ph, nlay, z, sig_ext, l, Jdot, Hdot):
 
   # Initial tau is at zero
   ph.tau = 0.0
@@ -77,7 +77,7 @@ def tauint_1D_pp(ph, nlay, z, sig_ext, l, Jdot):
 
       # Update estimator
       Jdot[ph.zc,l] += d1 # Mean intensity estimator
-      #Jdot[ph.zc,l] += d1*ph.nzp # Flux estimator
+      Hdot[ph.zc,l] += d1*ph.nzp # Flux estimator
 
       # tau of packet is now the sampled tau
       ph.tau = ph.tau_p
@@ -88,7 +88,7 @@ def tauint_1D_pp(ph, nlay, z, sig_ext, l, Jdot):
 
       # Update estimator
       Jdot[ph.zc,l] += dsz # Mean intensity estimator
-      #Jdot[ph.zc,l] += dsz*ph.nzp  # Flux estimator
+      Hdot[ph.zc,l] += dsz*ph.nzp  # Flux estimator
 
       # Apply integer offset to cell number
       ph.zc += zoffset
@@ -212,7 +212,7 @@ def scatter_surf(ph, z):
 ## Main gCMCRT function for wavelength and packet loop
 #def gCMCRT_main(Nph, nlay, nwl, cross, VMR_cross, n_ray, ray, VMR_ray, g, nd, Iinc, surf_alb, mu_z, z):
 @jit(nopython=True, cache=True, parallel=True)
-def gCMCRT_main(Nph, nlay, nwl, all_sp, ph_sp, ray_sp, nd_sp, cross, ray, Iinc, mu_z, dze):
+def gCMCRT_main(nit, Nph, nlay, nwl, all_sp, ph_sp, ray_sp, nd_sp, cross, ray, Iinc, mu_z, dze):
 
   # print('in gCMCRT : stopping')
   # print('Nph', str(Nph))
@@ -233,8 +233,9 @@ def gCMCRT_main(Nph, nlay, nwl, all_sp, ph_sp, ray_sp, nd_sp, cross, ray, Iinc, 
   # Number of levels
   nlev = nlay + 1
 
-  # Initalise Jdot
+  # Initalise Jdot and Hdot
   Jdot = np.zeros((nlay, nwl))
+  Hdot = np.zeros((nlay, nwl))
 
   # Initialise packet energy array
   e0dt = np.zeros(nwl)
@@ -288,7 +289,8 @@ def gCMCRT_main(Nph, nlay, nwl, all_sp, ph_sp, ray_sp, nd_sp, cross, ray, Iinc, 
     e0dt[l] = (mu_z * Iinc[l])/float(Nph)
 
     # Initialse random seed for this wavelength 
-    seed(int(1 + (l+1)**2 + np.sqrt(l+1)))
+    iseed = int(l)
+    seed(iseed)
 
     # Packet number loop
     for n in range(Nph):
@@ -311,7 +313,7 @@ def gCMCRT_main(Nph, nlay, nwl, all_sp, ph_sp, ray_sp, nd_sp, cross, ray, Iinc, 
         ph.tau_p = -np.log(random())
 
         # Move the photon through the grid given by the sampled tau
-        tauint_1D_pp(ph, nlay, z, sig_ext, l, Jdot)
+        tauint_1D_pp(ph, nlay, z, sig_ext, l, Jdot, Hdot)
 
         # Check status of the photon after moving
         match ph.flag:
@@ -338,7 +340,8 @@ def gCMCRT_main(Nph, nlay, nwl, all_sp, ph_sp, ray_sp, nd_sp, cross, ray, Iinc, 
             # Photon has an invalid flag, raise error
             print(str(ph.id) + ' has invalid flag: ' + str(ph.flag))
 
-    ## Scale estimator to dze
+    ## Scale estimators to dze
     Jdot[:,l] = e0dt[l]*Jdot[:,l]/dze[:]
+    Hdot[:,l] = e0dt[l]*Hdot[:,l]/dze[:]
 
-  return Jdot
+  return Jdot, Hdot
