@@ -52,8 +52,8 @@ use_gCMCRT = True
 Nph = 2000
 
 edd = 0.5 # the Eddington coefficient 
-dbin1 = 0.2  # the uniform bin width < dbin_12trans (nm)
-dbin2 = 5.0   # the uniform bin width > dbin_12trans (nm)
+dbin1 = 0.1  # the uniform bin width < dbin_12trans (nm)
+dbin2 = 2.0   # the uniform bin width > dbin_12trans (nm)
 dbin_12trans = 240.0 # the wavelength switching from dbin1 to dbin2 (nm)
 
 # the frequency to update the actinic flux and optical depth
@@ -151,7 +151,7 @@ post_conden_rtol = 0.1 # switched to this value after fix_species_time
 # ====== Setting up for ouwtput and plotting ======
 # plotting:
 plot_TP = False
-use_live_plot = True
+use_live_plot = False
 use_live_flux = False
 use_plot_end = False
 use_plot_evo = False

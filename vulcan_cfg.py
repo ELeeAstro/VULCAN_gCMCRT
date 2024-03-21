@@ -20,7 +20,7 @@ vul_ini = 'output/HD189-nominal.vul' # the file to initialize the abundances for
 output_dir = 'output/'
 plot_dir = 'plot/'
 movie_dir = 'plot/movie/'
-out_name =  'HD189.vul' # output file name
+out_name =  'HD189_gCMCRT.vul' # output file name
 
 # ====== Setting up the elemental abundance ======
 use_solar = False # True: using the solar abundance from Table 10. K.Lodders 2009; False: using the customized elemental abundance. 
@@ -52,8 +52,8 @@ use_gCMCRT = True
 Nph = 2000
 
 edd = 0.5 # the Eddington coefficient 
-dbin1 = 0.2  # the uniform bin width < dbin_12trans (nm)
-dbin2 = 5.0   # the uniform bin width > dbin_12trans (nm)
+dbin1 = 0.1  # the uniform bin width < dbin_12trans (nm)
+dbin2 = 2.0   # the uniform bin width > dbin_12trans (nm)
 dbin_12trans = 240.0 # the wavelength switching from dbin1 to dbin2 (nm)
 
 # the frequency to update the actinic flux and optical depth
@@ -70,7 +70,7 @@ if use_photo == False and use_ion == True:
 # ====== Setting up parameters for the atmosphere ======
 atm_base = 'H2' #Options: 'H2', 'N2', 'O2', 'CO2 -- the bulk gas of the atmosphere: changes the molecular diffsion, thermal diffusion factor, and settling velocity
 rocky = False # for the surface gravity
-nz = 100   # number of vertical layers
+nz = 150   # number of vertical layers
 P_b = 1e9  # pressure at the bottom (dyne/cm^2)
 P_t = 1e-2 # pressure at the top (dyne/cm^2)
 use_Kzz = True
