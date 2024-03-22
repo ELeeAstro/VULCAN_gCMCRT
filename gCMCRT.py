@@ -2,14 +2,10 @@
 
 '''
 
-from random import seed
-from random import random
+from random import seed, random
 import numpy as np
 from numba import jit, config, int32, float64, prange
-from numba.core import types
 from numba.experimental import jitclass
-from numba.typed import Dict
-import secrets
 
 ## Flag to disable JIT
 config.DISABLE_JIT = False
@@ -43,7 +39,7 @@ class pac:
 
 ## Function that integrates a packet through the 1D plane-parallel grid
 @jit(nopython=True, cache=True)
-def tauint_1D_pp(ph, nlay, z, sig_ext, l, Jdot, Hdot):
+def tauint_1D_pp(ph, nlay, z, sig_ext, l, Jdot):
 
   # Initial tau is at zero
   ph.tau = 0.0
@@ -77,7 +73,6 @@ def tauint_1D_pp(ph, nlay, z, sig_ext, l, Jdot, Hdot):
 
       # Update estimator
       Jdot[ph.zc,l] += d1 # Mean intensity estimator
-      Hdot[ph.zc,l] += d1*ph.nzp # Flux estimator
 
       # tau of packet is now the sampled tau
       ph.tau = ph.tau_p
@@ -88,7 +83,6 @@ def tauint_1D_pp(ph, nlay, z, sig_ext, l, Jdot, Hdot):
 
       # Update estimator
       Jdot[ph.zc,l] += dsz # Mean intensity estimator
-      Hdot[ph.zc,l] += dsz*ph.nzp  # Flux estimator
 
       # Apply integer offset to cell number
       ph.zc += zoffset
@@ -218,7 +212,6 @@ def gCMCRT_main(nit, Nph, nlay, nwl, all_sp, ph_sp, ray_sp, nd_sp, cross, ray, I
 
   # Initialise Jdot and Hdot
   Jdot = np.zeros((nlay, nwl))
-  Hdot = np.zeros((nlay, nwl))
 
   # Initialise packet energy array
   e0dt = np.zeros(nwl)
@@ -247,8 +240,6 @@ def gCMCRT_main(nit, Nph, nlay, nwl, all_sp, ph_sp, ray_sp, nd_sp, cross, ray, I
 
     # Find the total absorption opacity from photocross sections
     for i in range(n_cross):
-
-      #print(all_sp.index())
       sig_ext[:] += nd_sp[:,all_sp.index(ph_sp[i])] * cross[i,l] # Absorption opacity [cm-1]
 
     # Find the total rayleigh opacity from Rayleigh species cross sections
@@ -258,12 +249,6 @@ def gCMCRT_main(nit, Nph, nlay, nwl, all_sp, ph_sp, ray_sp, nd_sp, cross, ray, I
     # Extinction = photocross + Rayleigh
     sig_ext[:] += sig_sca[:]
 
-    # Find the tau grid starting from upper boundary - only needed for testing
-    # tau = np.zeros(nlev)
-    # tau[-1] = 0.0
-    # for k in range(nlay-1,-1,-1):
-    #   tau[k] = tau[k+1] + sig_ext[k] * dze[k]
-
     # Find scattering albedo - MCRT only works well up to around 0.98 ssa, so limit to that
     alb = np.zeros(nlay)
     alb[:] = np.minimum(sig_sca[:]/sig_ext[:],0.95)
@@ -272,7 +257,7 @@ def gCMCRT_main(nit, Nph, nlay, nwl, all_sp, ph_sp, ray_sp, nd_sp, cross, ray, I
     e0dt[l] = (mu_z * Iinc[l])/float(Nph)
 
     # Initialise random seed for this wavelength 
-    iseed = int(l)
+    iseed = int(l + l**2 + l/2)
     seed(iseed)
 
     # Packet number loop
@@ -281,7 +266,7 @@ def gCMCRT_main(nit, Nph, nlay, nwl, all_sp, ph_sp, ray_sp, nd_sp, cross, ray, I
       # Initialise packet variables (janky python way)
       flag = 0
       id = l*Nph + n
-      iscat = 1
+      iscat = 2
 
       # Initialise photon packet with initial values
       ph = pac(flag, id, 0.0, 0.0, 0, 0.0, 0.0, 0.0, iscat)
@@ -296,7 +281,7 @@ def gCMCRT_main(nit, Nph, nlay, nwl, all_sp, ph_sp, ray_sp, nd_sp, cross, ray, I
         ph.tau_p = -np.log(random())
 
         # Move the photon through the grid given by the sampled tau
-        tauint_1D_pp(ph, nlay, z, sig_ext, l, Jdot, Hdot)
+        tauint_1D_pp(ph, nlay, z, sig_ext, l, Jdot)
 
         # Check status of the photon after moving
         match ph.flag:
@@ -325,6 +310,5 @@ def gCMCRT_main(nit, Nph, nlay, nwl, all_sp, ph_sp, ray_sp, nd_sp, cross, ray, I
 
     ## Scale estimators to dze
     Jdot[:,l] = e0dt[l]*Jdot[:,l]/dze[:]
-    Hdot[:,l] = e0dt[l]*Hdot[:,l]/dze[:]
 
-  return Jdot, Hdot
+  return Jdot

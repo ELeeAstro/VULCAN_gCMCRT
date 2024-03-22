@@ -852,13 +852,10 @@ class Integration(object):
                   start = timeit.default_timer()
                   print('Start gCMCRT')
 
-                  Jdot, Hdot = gCMCRT_main(para.count, vulcan_cfg.Nph, nz, len(var.bins), species, ph_sp, vulcan_cfg.scat_sp, var.y, abs_cross, sca_cross, var.sflux_top, mu_ang, atm.dz)
+                  Jdot = gCMCRT_main(para.count, vulcan_cfg.Nph, nz, len(var.bins), species, ph_sp, vulcan_cfg.scat_sp, var.y, abs_cross, sca_cross, var.sflux_top, mu_ang, atm.dz)
                            
                   end = timeit.default_timer()
                   print('End gCMCRT, took: ', '{:.3f}'.format(end-start), 'seconds')
-
-                  # Add to flux estimator
-                  var.tflux[:,:] = abs(Hdot[:,:])
 
                   # store the previous actinic flux into prev_aflux
                   var.prev_aflux = np.copy(var.aflux)
@@ -870,7 +867,7 @@ class Integration(object):
                   start = timeit.default_timer()
                   print('Start normal')
                   self.odesolver.compute_tau(var, atm)
-                  self.odesolver.compute_flux(var, atm , para)
+                  self.odesolver.compute_flux(var, atm)
                   end = timeit.default_timer()
                   print('End normal, took: ', '{:.3f}'.format(end-start), 'seconds')
 
@@ -2292,7 +2289,7 @@ class ODESolver(object):
                
     # Lines like chi = zeta_m**2*tran**2 - zeta_p**2 doing large np 2D array multiplication
     # can be sped up with cython           
-    def compute_flux(self, var, atm, para): # Vectorise this loop!  
+    def compute_flux(self, var, atm): # Vectorise this loop!  
         # change it to stagerred grids
         # top: stellar flux
         # bottom BC: zero upcoming flux
