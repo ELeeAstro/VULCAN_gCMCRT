@@ -169,7 +169,7 @@ if vulcan_cfg.use_photo == True:
     
     # computing the optical depth (tau), flux, and the photolisys rates (J) for the first time
     solver.compute_tau(data_var, data_atm)
-    solver.compute_flux(data_var, data_atm)
+    solver.compute_flux(data_var, data_atm, data_para)
     solver.compute_J(data_var, data_atm)
     # they will be updated in op.Integration by the assigned frequence
     

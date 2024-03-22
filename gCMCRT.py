@@ -53,7 +53,7 @@ def tauint_1D_pp(ph, nlay, z, sig_ext, l, Jdot, Hdot):
 
     # Calculate dsz, the distance to the next vertical level
     if (ph.nzp > 0.0):
-      # Packet travelling upward, find distance to upper level
+      # Packet traveling upward, find distance to upper level
       dsz = (z[ph.zc+1]-ph.zp)/ph.nzp
       zoffset = 1
     elif (ph.nzp < 0.0):
@@ -210,30 +210,13 @@ def scatter_surf(ph, z):
     return
 
 ## Main gCMCRT function for wavelength and packet loop
-#def gCMCRT_main(Nph, nlay, nwl, cross, VMR_cross, n_ray, ray, VMR_ray, g, nd, Iinc, surf_alb, mu_z, z):
 @jit(nopython=True, cache=True, parallel=True)
 def gCMCRT_main(nit, Nph, nlay, nwl, all_sp, ph_sp, ray_sp, nd_sp, cross, ray, Iinc, mu_z, dze):
-
-  # print('in gCMCRT : stopping')
-  # print('Nph', str(Nph))
-  # print('nlay', nlay)
-  # print('nwl', nwl)
-  # print('all_sp',all_sp)
-  # print('ph_sp', ph_sp)
-  # print('ray_sp', ray_sp)
-  # sp = 'O2'
-  # print('nd_cross', nd_sp[:,all_sp.index(sp)])
-  # print('cross', cross['O2'])
-  # print('ray', ray['H2'])
-  # print('Iinc', Iinc)
-  # print('mu_z', mu_z)
-  # print('dze',dze)
-  # quit()
 
   # Number of levels
   nlev = nlay + 1
 
-  # Initalise Jdot and Hdot
+  # Initialise Jdot and Hdot
   Jdot = np.zeros((nlay, nwl))
   Hdot = np.zeros((nlay, nwl))
 
@@ -243,7 +226,7 @@ def gCMCRT_main(nit, Nph, nlay, nwl, all_sp, ph_sp, ray_sp, nd_sp, cross, ray, I
   # Initialise surface albedo
   surf_alb = np.zeros(nwl)
 
-  # Initialise assymetrey factor
+  # Initialise asymmetry factor
   g = np.zeros((nlay, nwl))
 
   # Reconstruct altitude grid from dze
@@ -288,7 +271,7 @@ def gCMCRT_main(nit, Nph, nlay, nwl, all_sp, ph_sp, ray_sp, nd_sp, cross, ray, I
     # Energy carried by each packet for this wavelength
     e0dt[l] = (mu_z * Iinc[l])/float(Nph)
 
-    # Initialse random seed for this wavelength 
+    # Initialise random seed for this wavelength 
     iseed = int(l)
     seed(iseed)
 
@@ -298,7 +281,7 @@ def gCMCRT_main(nit, Nph, nlay, nwl, all_sp, ph_sp, ray_sp, nd_sp, cross, ray, I
       # Initialise packet variables (janky python way)
       flag = 0
       id = l*Nph + n
-      iscat = 2
+      iscat = 1
 
       # Initialise photon packet with initial values
       ph = pac(flag, id, 0.0, 0.0, 0, 0.0, 0.0, 0.0, iscat)
